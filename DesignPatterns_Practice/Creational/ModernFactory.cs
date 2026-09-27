@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,15 +36,29 @@ namespace DesignPatterns_Practice.Creational
     }
     public class ModernFactoryExample
     {
-        private readonly ModernOrderService orderService;
+        private readonly ModernOrderService OrderService;
 
-        public ModernFactoryExample(ModernOrderService modernOrderService)
+        public ModernFactoryExample()
         {
-            orderService = modernOrderService;
+            // create a host builder
+            HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+
+            builder.Services.AddSingleton<ModernOrderService>();
+            builder.Services.AddKeyedScoped<IPaymentProcessor, CreditCardProcessor>(PaymentMethod.CreditCard);
+            builder.Services.AddKeyedScoped<IPaymentProcessor, PayPalProcessor>(PaymentMethod.PayPal);
+            builder.Services.AddKeyedScoped<IPaymentProcessor, ApplePayProcessor>(PaymentMethod.ApplePay);
+            builder.Services.AddKeyedScoped<IPaymentProcessor, CryptoProcessor>(PaymentMethod.Crypto);
+
+
+            Console.WriteLine("Modern Factory Example:");
+            var serviceProvider = builder.Services.BuildServiceProvider();
+            OrderService = serviceProvider.GetRequiredService<ModernOrderService>();
         }
 
-        public void Run()
+        public static void Run()
         {
+            var Modernfactory= new ModernFactoryExample();
+            var orderService = Modernfactory.OrderService;
             orderService.ProcessOrder(new Order { TotalAmount = 100.00m }, PaymentMethod.CreditCard);
             orderService.ProcessOrder(new Order { TotalAmount = 50.00m }, PaymentMethod.PayPal);
             orderService.ProcessOrder(new Order { TotalAmount = 75.00m }, PaymentMethod.ApplePay);

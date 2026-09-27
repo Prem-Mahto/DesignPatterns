@@ -21,6 +21,7 @@
      - *Deep Dive: The Step Builder (Compile-Time Type-State Machine with IntelliSense)*
    - [Pattern 4: Prototype Pattern](#pattern-4-prototype-creational)
      - *Deep Dive: Deep Cloning with Composition (Recursive Prototype vs JSON Serialization)*
+     - *[Comparison: Prototype vs. Flyweight](#deep-dive-qa-prototype-vs-flyweight-why-both-exist--the-4-fundamental-differences)*
    - [Foundational Deep Dives](#foundational-deep-dives)
      - *Why use Properties instead of Class Variables (Fields)?*
      - *When to use `internal` vs `public` for Classes, Methods, and Properties?*
@@ -28,13 +29,16 @@
    - [Overview of the 7 Structural Patterns](#overview-of-the-7-structural-patterns)
    - [Pattern 1: Adapter Pattern](#pattern-1-adapter-structural)
    - [Pattern 2: Decorator Pattern](#pattern-2-decorator-structural)
+     - *[Comparison: Decorator vs. Proxy](#deep-dive-qa-decorator-vs-proxy-why-they-look-similar--their-4-fundamental-architectural-differences)*
    - [Pattern 3: Facade Pattern](#pattern-3-facade-structural)
      - *Deep Dive: Does Facade just move complexity? Centralization & Law of Conservation of Complexity*
    - [Pattern 4: Proxy Pattern](#pattern-4-proxy-structural)
      - *Deep Dive: Dependency Injection for Proxies with `IHttpContextAccessor` and Keyed Services*
+     - *Deep Dive: Decorator vs. Proxy (Why they look similar & their 4 fundamental architectural differences)*
    - [Pattern 5: Composite Pattern](#pattern-5-composite-structural)
    - [Pattern 6: Bridge Pattern](#pattern-6-bridge-structural)
    - [Pattern 7: Flyweight Pattern](#pattern-7-flyweight-structural)
+     - *Deep Dive: Prototype vs. Flyweight (Why both exist & the 4 fundamental differences)*
 4. [Behavioral Design Patterns](#4-behavioral-design-patterns)
    - [Overview of the 11 Behavioral Patterns](#overview-of-the-11-behavioral-patterns)
    - [Pattern 1: Strategy Pattern](#pattern-1-strategy-behavioral)
@@ -1027,6 +1031,13 @@ public EmploymentContract Clone()
 
 ---
 
+> [!NOTE]
+> **Prototype vs. Flyweight Comparison:**  
+> Wondering why Prototype and Flyweight seem to solve the same problem of managing many similar objects and how they fundamentally differ?  
+> See the complete architectural breakdown, memory layout comparison, and comparison matrix in the [Flyweight Pattern Deep Dive: Prototype vs. Flyweight](#deep-dive-qa-prototype-vs-flyweight-why-both-exist--the-4-fundamental-differences).
+
+---
+
 ## Foundational Deep Dives
 
 ### Deep Dive: Why use Properties instead of Class Variables (Fields)?
@@ -1059,88 +1070,480 @@ public EmploymentContract Clone()
 
 # 3. Structural Design Patterns
 
-## Overview of the 7 Structural Patterns
+While *Creational* patterns were all about **how objects are born**, *Structural* patterns are all about **how objects fit together like Lego bricks** to form larger, flexible systems without tight coupling.
 
-| Pattern | One-Line Persona | Primary Focus |
+## Overview of the 7 Classic GoF Structural Design Patterns
+
+### 1. Adapter (The "Universal Travel Plug")
+* **The Problem:** You have a new system that expects Interface A, but you have an existing or third-party legacy library that only provides Interface B. Their shapes don't match.
+* **The Solution:** A wrapper class that translates calls from what your code expects into what the incompatible class needs.
+* **Real-world C# Example:** Wrapping a legacy SOAP XML payment gateway so it looks like your modern `IPaymentService` JSON interface.
+
+### 2. Decorator (The "Gift Wrap" / "Coffee Toppings")
+* **The Problem:** You want to add extra features (caching, logging, encryption, metrics) to a class dynamically without modifying its existing code or creating a nightmare of subclasses (`CachedEncryptedLoggedRepository`).
+* **The Solution:** Wrap the object inside another object that implements the same interface, adding behavior before or after delegating the call.
+* **Real-world C# Example:** ASP.NET Core Middleware pipeline, `CryptoStream` wrapping a `FileStream`, or adding caching to an `IRepository`.
+
+### 3. Facade (The "Hotel Front Desk")
+* **The Problem:** A complex subsystem has 15 micro-services, classes, or initialization steps. Consumers get overwhelmed trying to orchestrate them in the right order.
+* **The Solution:** Provide a single, simplified, high-level interface that hides the messy wiring behind one simple method call.
+* **Real-world C# Example:** A checkout facade: `orderFacade.PlaceOrder()` handles inventory deduction, credit card charging, shipping label generation, and invoice emailing in one call.
+
+### 4. Proxy (The "Security Guard" / "Bodyguard")
+* **The Problem:** You want to control, secure, or delay access to an expensive or sensitive object without the caller knowing.
+* **The Solution:** A stand-in placeholder that implements the exact same interface as the real object, intercepting calls to check permissions, log activity, or lazily initialize the real object.
+* **Real-world C# Example:** Entity Framework's "Lazy Loading" dynamic proxies (loading navigation properties only when accessed), or an API caching proxy.
+
+### 5. Composite (The "Tree / Folder Structure")
+* **The Problem:** You have a hierarchy where an item can be a single element OR a collection of elements (e.g., a file vs. a folder containing files and sub-folders). You don't want callers to write messy `if (item is Folder) { foreach... } else { ... }`.
+* **The Solution:** Treat individual objects and compositions of objects uniformly through a shared interface.
+* **Real-world C# Example:** UI element trees (WPF/HTML DOM: a `Panel` contains `Buttons` and child `Panels`, and calling `.Draw()` draws everything recursively).
+
+### 6. Bridge (The "Decoupler")
+* **The Problem:** You have two independent dimensions that can grow indefinitely (e.g., Shapes: *Circle, Square, Triangle* and Renderers: *DirectX, OpenGL, Vulkan*). If you use inheritance, you end up with 3 × 3 = 9 classes (`DirectXCircle`, `OpenGLCircle`, etc.).
+* **The Solution:** Separate the abstraction from its implementation via composition so both can grow independently without causing a subclass explosion.
+* **Real-world C# Example:** Decoupling a `MessageSender` (SMS, Email) from the `MessagePriority` (Urgent, Normal).
+
+### 7. Flyweight (The "Memory Optimizer")
+* **The Problem:** Your application creates millions of small objects (e.g., 100,000 trees in a game, or every character in a 500-page text editor), causing severe RAM exhaustion and Out-Of-Memory (OOM) crashes.
+* **The Solution:** Share common, immutable state (like textures, fonts, or colors) among all instances instead of duplicating it in every single object.
+* **Real-world C# Example:** .NET's internal **String Interning** (`string.Intern()`), game engine particle systems.
+
+### Quick Comparison Matrix
+
+| Pattern | One-line Persona | Primary Focus |
 | :--- | :--- | :--- |
 | **Adapter** | *The Translator* | Makes two **incompatible interfaces** work together. |
-| **Decorator** | *The Wrapper* | **Adds responsibilities dynamically** without subclass explosion. |
-| **Facade** | *The Front Desk* | Provides a **simplified high-level entry point** to a complex system. |
-| **Proxy** | *The Bodyguard* | **Controls access** (security, lazy loading, caching, remote boundary). |
-| **Composite** | *The Tree* | Treats **single items and collections/trees uniformly**. |
-| **Bridge** | *The Decoupler* | Splits a class into **two independent dimensions** of change. |
-| **Flyweight** | *The Memory Saver* | **Shares common immutable state** across millions of objects to save RAM. |
+| **Decorator** | *The Wrapper* | **Adds responsibilities dynamically** without inheritance. |
+| **Facade** | *The Front Desk* | Provides a **simplified entry point** to a complex system. |
+| **Proxy** | *The Bodyguard* | **Controls access** (security, lazy loading, caching). |
+| **Composite** | *The Tree* | Treats **single items and collections uniformly**. |
+| **Bridge** | *The Decoupler* | Splits a class into **two independent dimensions**. |
+| **Flyweight** | *The Memory Saver* | **Shares common state** across millions of objects to save RAM. |
 
 ---
 
 ## Pattern 1: Adapter (Structural)
 
-### 1. Problem / Pain Point
-Integrating a legacy or 3rd-party vendor SDK (`SpeedySmsLegacyApi`) whose parameter types and method names do not match your clean `INotificationService`.
+### 1. What is the Problem? (The Real-World Pain)
+Imagine you are building a modern **Customer Notification System**. In your clean architecture, all your services depend on a standard, elegant interface:
 
-### 2. Core Concept
-A wrapper that translates calls from what your code expects into what the incompatible class needs (like a US-to-UK wall plug adapter). Acts as an **Anti-Corruption Layer (ACL)**.
+```csharp
+public interface INotificationService
+{
+    Task SendAsync(string recipientEmailOrPhone, string message);
+}
+```
 
+Now, your company signs a contract with a legacy SMS gateway provider called **SpeedySms Inc.** They give you their closed-source DLL:
+
+```csharp
+// ❌ Third-party / Legacy code (you CANNOT change this class!):
+public class SpeedySmsLegacyApi
+{
+    // Weird method name, expects long phone numbers with no '+' sign, and takes weird flags
+    public bool DispatchMessageV2(long internationalPhoneNumber, string text, int priorityFlag, bool isFlash)
+    {
+        Console.WriteLine($"[SpeedySms Gateway] Sent to +{internationalPhoneNumber}: {text}");
+        return true;
+    }
+}
+```
+
+#### The Dilemma:
+* **The Bad Solution:** Litter your entire codebase with `if (usingSpeedySms) { ... parse phone to long, call DispatchMessageV2 ... }`. You pollute clean business logic with vendor junk. If you switch vendors next year, you must rewrite half your application.
+* **The Architect's Solution:** Build an **Adapter**.
+
+### 2. The Core Concept (Plain English)
+> **"Convert the interface of an existing class into another interface that clients expect. An Adapter lets classes work together that couldn't otherwise because of incompatible interfaces."**
+
+**The Analogy: A Travel Power Plug**  
+You travel from the US to the UK with your US laptop charger (flat 2-prong plug). The UK wall socket has 3 rectangular pins. 
+- You do **not** cut your laptop cable.
+- You do **not** rip the wall socket out of the hotel.
+- You buy a **£5 plug adapter** that sits in the middle: your laptop plugs into the adapter, and the adapter plugs into the wall.
+
+```
+[ Your Business Code ] ---> ( INotificationService )
+                                    │
+                                    ▼
+                         [ SpeedySmsAdapter ]  <-- The Adapter!
+                                    │
+                                    ▼
+                         [ SpeedySmsLegacyApi ] (Incompatible 3rd-Party)
+```
+
+### 3. Implementation in Modern C#
+
+#### Step 1: The Target Contract
+```csharp
+public interface INotificationService
+{
+    Task SendAsync(string recipient, string message);
+}
+```
+
+#### Step 2: The Adaptee (External Class)
+```csharp
+public class SpeedySmsLegacyApi
+{
+    public bool DispatchMessageV2(long internationalPhoneNumber, string text, int priorityFlag, bool isFlash)
+    {
+        Console.WriteLine($"[Vendor API] Dispatched to +{internationalPhoneNumber}: \"{text}\" (Priority: {priorityFlag})");
+        return true;
+    }
+}
+```
+
+#### Step 3: The Adapter
 ```csharp
 public class SpeedySmsAdapter : INotificationService
 {
     private readonly SpeedySmsLegacyApi _legacyApi;
 
-    public SpeedySmsAdapter(SpeedySmsLegacyApi legacyApi) => _legacyApi = legacyApi;
+    public SpeedySmsAdapter(SpeedySmsLegacyApi legacyApi)
+    {
+        _legacyApi = legacyApi;
+    }
 
     public Task SendAsync(string recipient, string message)
     {
+        // 1. Adapt and translate inputs: strip out non-digits
         string cleanPhone = new string(recipient.Where(char.IsDigit).ToArray());
-        long parsed = long.Parse(cleanPhone);
-        _legacyApi.DispatchMessageV2(parsed, message, priorityFlag: 1, isFlash: false);
+        
+        if (!long.TryParse(cleanPhone, out long parsedPhone))
+        {
+            throw new ArgumentException($"Invalid phone number format: {recipient}");
+        }
+
+        // 2. Map standard call to vendor parameters
+        int normalPriority = 1;
+        bool isFlash = false;
+
+        bool success = _legacyApi.DispatchMessageV2(parsedPhone, message, normalPriority, isFlash);
+
+        if (!success)
+        {
+            throw new InvalidOperationException("Failed to dispatch SMS through vendor gateway.");
+        }
+
         return Task.CompletedTask;
     }
 }
 ```
 
+#### Step 4: Consuming in Business Logic
+```csharp
+public class OrderService
+{
+    private readonly INotificationService _notifier;
+
+    public OrderService(INotificationService notifier)
+    {
+        _notifier = notifier;
+    }
+
+    public async Task CompleteOrderAsync(string customerPhone, decimal amount)
+    {
+        Console.WriteLine($"Order of ${amount} completed.");
+        await _notifier.SendAsync(customerPhone, $"Your order of ${amount} is confirmed!");
+    }
+}
+```
+
+#### In `Program.cs` (Dependency Injection):
+```csharp
+builder.Services.AddSingleton<SpeedySmsLegacyApi>();
+builder.Services.AddScoped<INotificationService, SpeedySmsAdapter>();
+builder.Services.AddScoped<OrderService>();
+```
+*If your company switches to Twilio next year, write `TwilioAdapter : INotificationService` and change 1 line in `Program.cs`.*
+
+### 4. The Architect's View: Anti-Corruption Layer (ACL)
+In **Domain-Driven Design (DDD)** or **Microservices**, the Adapter is the building block of an **Anti-Corruption Layer (ACL)**. It prevents external models, weird schemas, or legacy SOAP XML structures from corrupting your clean domain entities.
+
+### Summary: When to use Adapter
+
+| Use Adapter When... | Don't Use Adapter When... |
+| :--- | :--- |
+| Integrating a 3rd-party library/SDK whose interface doesn't match your design | You have full control over both classes and can simply change them directly |
+| Integrating legacy code without rewriting or breaking it | You want to add *new behaviors* (use **Decorator** instead) |
+| Creating an Anti-Corruption Layer between systems | You want to simplify a complex multi-class subsystem (use **Facade** instead) |
+
 ---
 
 ## Pattern 2: Decorator (Structural)
 
-### 1. Problem / Pain Point
-Adding caching, telemetry, and retry to `IWeatherService` via inheritance leads to `CachedLoggedRetryWeatherService` class explosion ($2^N$ subclasses).
+### 1. What is the Problem? (The Real-World Pain: Inheritance Explosion)
+Imagine you have a service that fetches weather data from an expensive external API:
 
-### 2. Core Concept
-Wrap the object inside another class implementing the **exact same interface** (like adding milk and caramel to coffee).
+```csharp
+public interface IWeatherService
+{
+    Task<string> GetForecastAsync(string city);
+}
 
+public class ApiWeatherService : IWeatherService
+{
+    public async Task<string> GetForecastAsync(string city)
+    {
+        await Task.Delay(1000); 
+        return $"Sunny, 25°C in {city}";
+    }
+}
+```
+
+Now, the business comes with new requirements:
+1. *"We need in-memory **Caching** so we don't hit the API every second."*
+2. *"We need **Telemetry/Logging** to measure how long calls take."*
+3. *"We need **Resilience/Retry** if the network drops."*
+
+#### The Junior Developer's Instinct: Use Inheritance!
+* `CachedWeatherService : ApiWeatherService`
+* `LoggedWeatherService : ApiWeatherService`
+* `CachedAndLoggedWeatherService : CachedWeatherService`
+* `RetryCachedAndLoggedWeatherService : ...`
+
+**The Disaster:**
+* **Class Explosion:** 3 features lead to 8 combinations of classes. 5 features lead to 32 subclasses!
+* **Violates SRP:** Weather logic gets polluted with caching dictionaries, stopwatches, and retry loops.
+* **Brittle:** If you replace `ApiWeatherService` with `DatabaseWeatherService`, none of your subclasses work with it!
+
+### 2. The Core Concept (Plain English)
+> **"Attach new responsibilities to an object dynamically by wrapping it inside a decorator that implements the exact same interface."**
+
+**Analogy: Winter Clothing or Coffee Add-ons**  
+Think of ordering coffee at Starbucks:
+1. You start with a **Plain Coffee** ($2.00).
+2. You wrap it with **Milk** (adds $0.50).
+3. You wrap it with **Caramel Syrup** (adds $0.75).
+4. You wrap it with **Whipped Cream** (adds $0.50).  
+Each layer adds new flavor and cost, but to the customer, **the entire cup is still a `Coffee`**.
+
+```
+[ LoggingDecorator ]
+   └── [ CachingDecorator ]
+          └── [ Real ApiWeatherService ]
+```
+
+### 3. Implementation in Modern C#
+
+#### Step 1: The Base Product
+```csharp
+public interface IWeatherService
+{
+    Task<string> GetForecastAsync(string city);
+}
+
+public class ApiWeatherService : IWeatherService
+{
+    public async Task<string> GetForecastAsync(string city)
+    {
+        Console.WriteLine($"[API] Fetching fresh data from satellite for '{city}'...");
+        await Task.Delay(500); 
+        return $"Sunny, 24°C in {city}";
+    }
+}
+```
+
+#### Step 2: Decorator #1 (Adding Caching)
 ```csharp
 public class CachedWeatherService : IWeatherService
 {
     private readonly IWeatherService _inner;
     private readonly Dictionary<string, string> _cache = new();
 
-    public CachedWeatherService(IWeatherService inner) => _inner = inner;
+    public CachedWeatherService(IWeatherService inner)
+    {
+        _inner = inner;
+    }
 
     public async Task<string> GetForecastAsync(string city)
     {
-        if (_cache.TryGetValue(city, out var val)) return val;
-        var fresh = await _inner.GetForecastAsync(city);
-        _cache[city] = fresh;
-        return fresh;
+        if (_cache.TryGetValue(city, out var cachedData))
+        {
+            Console.WriteLine($"[Cache HIT] Returning cached data for '{city}'.");
+            return cachedData;
+        }
+
+        var freshData = await _inner.GetForecastAsync(city);
+        _cache[city] = freshData;
+        return freshData;
     }
 }
-
-// Chaining:
-IWeatherService service = new LoggingWeatherService(new CachedWeatherService(new ApiWeatherService()));
 ```
-*In ASP.NET Core DI, use the `Scrutor` library: `builder.Services.Decorate<IWeatherService, CachedWeatherService>();`*
+
+#### Step 3: Decorator #2 (Adding Performance Logging)
+```csharp
+using System.Diagnostics;
+
+public class LoggingWeatherService : IWeatherService
+{
+    private readonly IWeatherService _inner;
+
+    public LoggingWeatherService(IWeatherService inner)
+    {
+        _inner = inner;
+    }
+
+    public async Task<string> GetForecastAsync(string city)
+    {
+        var sw = Stopwatch.StartNew();
+        var result = await _inner.GetForecastAsync(city);
+        sw.Stop();
+        Console.WriteLine($"[Telemetry] Request for '{city}' took {sw.ElapsedMilliseconds}ms.");
+        return result;
+    }
+}
+```
+
+### 4. Assembling and Running the Decorators
+```csharp
+class Program
+{
+    static async Task Main()
+    {
+        IWeatherService weatherService = 
+            new LoggingWeatherService(
+                new CachedWeatherService(
+                    new ApiWeatherService()
+                )
+            );
+
+        Console.WriteLine("--- Request 1 (Cache is cold) ---");
+        var result1 = await weatherService.GetForecastAsync("London");
+
+        Console.WriteLine("\n--- Request 2 (Cache is warm) ---");
+        var result2 = await weatherService.GetForecastAsync("London");
+    }
+}
+```
+
+#### Output:
+```text
+--- Request 1 (Cache is cold) ---
+[API] Fetching fresh data from satellite for 'London'...
+[Telemetry] Request for 'London' took 512ms.
+
+--- Request 2 (Cache is warm) ---
+[Cache HIT] Returning cached data for 'London'.
+[Telemetry] Request for 'London' took 0ms.
+```
+
+### 5. The Architect's View: How .NET Uses Decorators Everywhere
+* **.NET IO Streams:**
+  ```csharp
+  Stream fileStream = File.OpenWrite("data.bin");
+  Stream gzipStream = new GZipStream(fileStream, CompressionMode.Compress);
+  Stream cryptoStream = new CryptoStream(gzipStream, encryptor, CryptoStreamMode.Write);
+  ```
+* **Clean DI with "Scrutor":**
+  ```csharp
+  builder.Services.AddScoped<IWeatherService, ApiWeatherService>();
+  builder.Services.Decorate<IWeatherService, CachedWeatherService>();
+  builder.Services.Decorate<IWeatherService, LoggingWeatherService>();
+  ```
+
+---
+
+> [!NOTE]
+> **Decorator vs. Proxy Comparison:**  
+> Wondering why the Decorator and Proxy patterns look so similar structurally and how they differ architecturally?  
+> See the detailed breakdown, lifecycle comparison, and comparison matrix in the [Proxy Pattern Deep Dive: Decorator vs. Proxy](#deep-dive-qa-decorator-vs-proxy-why-they-look-similar--their-4-fundamental-architectural-differences).
 
 ---
 
 ## Pattern 3: Facade (Structural)
 
-### 1. Problem / Pain Point
-A Web Controller coordinates Inventory, Tax, Payment, Shipping, and Email (5 dependencies, 40 lines of orchestration).
+### 1. What is the Problem? (The Real-World Pain)
+Imagine an **E-Commerce Checkout API**. To place an order, you must coordinate 5 subsystems:
+1. Check product inventory in warehouse.
+2. Calculate sales tax.
+3. Charge the customer's credit card.
+4. Reserve shipping with FedEx/DHL.
+5. Send an order confirmation email.
 
-### 2. Core Concept
-Provide a unified high-level front desk (`OrderProcessingFacade.PlaceOrderAsync()`).
-
+#### Without a Facade (The Messy Controller):
 ```csharp
+// ❌ Controller is drowning in dependencies and orchestration logic!
+public class CheckoutController : ControllerBase
+{
+    private readonly IInventoryService _inventory;
+    private readonly ITaxCalculator _tax;
+    private readonly IPaymentService _payment;
+    private readonly IShippingService _shipping;
+    private readonly IEmailService _email;
+
+    public CheckoutController(
+        IInventoryService inventory, ITaxCalculator tax, 
+        IPaymentService payment, IShippingService shipping, IEmailService email)
+    {
+        _inventory = inventory; _tax = tax; _payment = payment; _shipping = shipping; _email = email;
+    }
+
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout(CheckoutRequest request)
+    {
+        if (!await _inventory.IsInStockAsync(request.ProductId, request.Quantity)) 
+            return BadRequest("Out of stock");
+
+        var taxAmount = await _tax.CalculateTaxAsync(request.Amount, request.Country);
+        var total = request.Amount + taxAmount;
+
+        var paymentSuccess = await _payment.ChargeAsync(request.CardToken, total);
+        if (!paymentSuccess) return BadRequest("Payment failed");
+
+        var trackingNumber = await _shipping.BookShipmentAsync(request.Address, request.ProductId);
+        await _email.SendConfirmationAsync(request.Email, trackingNumber);
+
+        return Ok(new { TrackingNumber = trackingNumber });
+    }
+}
+```
+
+### 2. The Core Concept (Plain English)
+> **"Provide a unified, higher-level interface to a set of interfaces in a subsystem. A Facade makes the subsystem easier to use by hiding its complexity behind one simple method call."**
+
+**Analogy: The Hotel Front Desk (Concierge)**  
+You don't call the kitchen, wine cellar, valet, and housekeeping individually. You pick up the phone, dial **`0` for the Front Desk (The Facade)**, and say: *"Book me a romantic dinner and arrange a car for 8 PM."*
+
+### 3. Implementation in Modern C#
+
+#### Step 1: Subsystems
+```csharp
+public class InventoryService
+{
+    public bool CheckStock(string sku, int qty) => true;
+    public void DeductStock(string sku, int qty) => Console.WriteLine($"[Warehouse] {qty} units of {sku} reserved.");
+}
+
+public class PaymentService
+{
+    public bool ProcessPayment(string cardToken, decimal amount)
+    {
+        Console.WriteLine($"[Stripe] Successfully charged ${amount}.");
+        return true;
+    }
+}
+
+public class ShippingService
+{
+    public string GenerateLabel(string address) => "FEDEX-TRACK-99482";
+}
+
+public class NotificationService
+{
+    public void SendReceipt(string email, string tracking) => Console.WriteLine($"[Email] Receipt sent to {email}");
+}
+```
+
+#### Step 2: The Facade
+```csharp
+public interface IOrderProcessingFacade
+{
+    Task<OrderResult> PlaceOrderAsync(OrderRequest request);
+}
+
 public class OrderProcessingFacade : IOrderProcessingFacade
 {
     private readonly InventoryService _inventory;
@@ -1148,13 +1551,45 @@ public class OrderProcessingFacade : IOrderProcessingFacade
     private readonly ShippingService _shipping;
     private readonly NotificationService _notification;
 
+    public OrderProcessingFacade(
+        InventoryService inventory, PaymentService payment, 
+        ShippingService shipping, NotificationService notification)
+    {
+        _inventory = inventory; _payment = payment; _shipping = shipping; _notification = notification;
+    }
+
     public async Task<OrderResult> PlaceOrderAsync(OrderRequest request)
     {
+        if (!_inventory.CheckStock(request.Sku, request.Quantity))
+            return OrderResult.Failed("Item out of stock.");
+
         _inventory.DeductStock(request.Sku, request.Quantity);
-        _payment.ProcessPayment(request.PaymentToken, request.TotalAmount);
+
+        var paid = _payment.ProcessPayment(request.PaymentToken, request.TotalAmount);
+        if (!paid) return OrderResult.Failed("Payment declined.");
+
         var tracking = _shipping.GenerateLabel(request.ShippingAddress);
         _notification.SendReceipt(request.CustomerEmail, tracking);
+
         return OrderResult.Success(tracking);
+    }
+}
+```
+
+#### Step 3: Clean Calling Code (Only 1 Dependency!)
+```csharp
+public class CheckoutController : ControllerBase
+{
+    private readonly IOrderProcessingFacade _orderFacade;
+
+    public CheckoutController(IOrderProcessingFacade orderFacade) => _orderFacade = orderFacade;
+
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout(OrderRequest request)
+    {
+        var result = await _orderFacade.PlaceOrderAsync(request);
+        if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
+        return Ok(new { TrackingNumber = result.TrackingNumber });
     }
 }
 ```
@@ -1164,24 +1599,109 @@ public class OrderProcessingFacade : IOrderProcessingFacade
 ### Deep Dive Q&A: Does Facade just move complexity?
 
 > **Question:** Doesn't this just move all the complexity from checkout controller to the facade?
+> - *Duplication:* What if tomorrow you add a Mobile App, a Batch Order processor, or an Admin Portal? You have to copy-paste this 40-line sequence into three other places!
+> - *Fragile:* If the payment step needs a new fraud-check parameter next month, you have to find and update every single place where checkout was written.
 
 **Answer:**
-**Yes, absolutely!** 
-> **Law of Conservation of Complexity:** You cannot eliminate business complexity; you can only decide **where it lives** and **how many times it is repeated**.
+**Yes, absolutely! You are 100% correct.** The complexity didn't disappear into thin air.
+> **Law of Conservation of Complexity:** Every system has an inherent amount of irreducible complexity. You cannot eliminate it; you can only decide **where it lives** and **how many times it is repeated**.
 
-* **Without Facade:** The 40 lines are copy-pasted across Web Controller, Mobile API, Batch CSV Importer, and Admin Console (**160 lines in 4 places**). If fraud checks change, you must update 4 files.
-* **With Facade:** The complexity lives in **1 single class**. All 4 callers make a 1-line call.
-* **Unit Testing:** You test the controller by mocking **1 interface** (`IOrderProcessingFacade`) instead of 5 separate services.
+#### 1. Centralization vs. Sprawl (The 1 Place vs. 4 Places Rule)
+```
+WITHOUT FACADE:
+[ Web Controller ]      ──> 40 lines (Inventory -> Tax -> Pay -> Ship -> Email)
+[ Mobile API ]          ──> 40 lines (Copied & Pasted)
+[ Batch CSV Importer ]  ──> 40 lines (Copied & Pasted)
+[ Admin Phone Orders ]  ──> 40 lines (Copied & Pasted)
+
+WITH FACADE:
+[ Web Controller ]     ───┐
+[ Mobile API ]         ───┼──> [ IOrderProcessingFacade ] ──> 40 lines in ONE place!
+[ Batch CSV Importer ] ───┤           │
+[ Admin Phone Orders ] ───┘           └── Coordinates subsystems
+```
+If a fraud-check step is added, you edit **one file**, and all 4 entry points instantly inherit the fix.
+
+#### 2. Separation of Concerns (HTTP vs. Business Logic)
+A controller's job is **HTTP communication** (headers, tokens, HTTP status codes), not database updates or warehouse logic. By moving it to a Facade, any caller (Console app, Azure Function, RabbitMQ worker) can reuse it.
+
+#### 3. Unit Testing Becomes 10x Easier
+- **Without Facade:** You must mock 5 services in every controller test.
+- **With Facade:** Mock **1 interface** (`Mock<IOrderProcessingFacade>`).
 
 ---
 
 ## Pattern 4: Proxy (Structural)
 
-### 1. Problem / Pain Point
-Controlling, securing, or lazy-loading an expensive/sensitive object (`RealDocumentService`).
+### 1. What is the Problem? (The Real-World Pain)
+Imagine a **Confidential Document Management System** (`RealDocumentService`). You need:
+1. **Security / Access Control:** Only users with `"Admin"` or `"HRManager"` roles can view documents.
+2. **Auditing:** Every single view attempt must be logged for compliance.
+3. **Lazy Loading:** Avoid loading heavy 50MB PDF rendering engines into memory until the user actually views a document.
 
-### 2. Core Concept
-A stand-in / bodyguard that implements the exact same interface (`DocumentServiceProxy`) and intercepts calls to verify roles and audit logs before delegating to the real service.
+### 2. The Core Concept (Plain English)
+> **"Provide a surrogate or placeholder for another object to control access to it."**
+
+**Analogy: The Bodyguard / Executive Assistant**  
+You don't walk directly into the CEO's office. You speak to the **Executive Assistant (The Proxy)** first. The assistant checks your identity. If authorized, they let you in. If not, you are turned away before wasting the CEO's time.
+
+```
+[ Client Code ] ──> ( IDocumentService )
+                           │
+                           ▼
+                 [ DocumentServiceProxy ]  <-- Checks permissions / audits
+                           │
+                           ▼ (If authorized)
+                 [ RealDocumentService ]   <-- Does actual heavy work
+```
+
+### 3. Implementation in Modern C#
+```csharp
+public interface IDocumentService
+{
+    void DisplayDocument(string documentId);
+}
+
+public class RealDocumentService : IDocumentService
+{
+    public RealDocumentService() => Console.WriteLine("[RealDocumentService] Initializing PDF rendering engine...");
+    public void DisplayDocument(string id) => Console.WriteLine($"[RealDocumentService] Rendering: '{id}'");
+}
+
+public class DocumentServiceProxy : IDocumentService
+{
+    private RealDocumentService? _realService; // Lazy loaded!
+    private readonly string _currentUserRole;
+
+    public DocumentServiceProxy(string currentUserRole) => _currentUserRole = currentUserRole;
+
+    public void DisplayDocument(string documentId)
+    {
+        Console.WriteLine($"[Audit Log] User with role '{_currentUserRole}' requested doc '{documentId}'.");
+
+        if (_currentUserRole != "Admin" && _currentUserRole != "HRManager")
+        {
+            Console.WriteLine($"[Access Denied] User '{_currentUserRole}' unauthorized!\n");
+            return;
+        }
+
+        _realService ??= new RealDocumentService(); // Virtual Proxy: Lazy loading!
+        _realService.DisplayDocument(documentId);
+    }
+}
+```
+
+#### Output:
+```text
+--- Scenario 1: Regular Employee attempts access ---
+[Audit Log] User with role 'Employee' requested doc 'Salary_Q3_2026.pdf'.
+[Access Denied] User 'Employee' is unauthorized to view confidential docs!
+
+--- Scenario 2: HR Manager attempts access ---
+[Audit Log] User with role 'HRManager' requested doc 'Salary_Q3_2026.pdf'.
+[RealDocumentService] Initializing PDF rendering engine...
+[RealDocumentService] Rendering document contents for: 'Salary_Q3_2026.pdf'
+```
 
 ---
 
@@ -1189,175 +1709,595 @@ A stand-in / bodyguard that implements the exact same interface (`DocumentServic
 
 > **Question:** How will DI work for this?
 
-```csharp
-// In Program.cs (Using .NET 8/9 Keyed Services):
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddKeyedScoped<RealDocumentService>("real");
-builder.Services.AddScoped<IDocumentService, DocumentServiceProxy>();
+In ASP.NET Core, user roles should be read dynamically from `IHttpContextAccessor`, and the real service kept protected or lazy:
 
-// Inside DocumentServiceProxy:
+```csharp
 public class DocumentServiceProxy : IDocumentService
 {
-    private readonly IHttpContextAccessor _httpContext;
-    private readonly IServiceProvider _sp;
-    private RealDocumentService? _real;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IServiceProvider _serviceProvider;
+    private RealDocumentService? _realService;
 
-    public DocumentServiceProxy(IHttpContextAccessor httpContext, IServiceProvider sp)
+    public DocumentServiceProxy(IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider)
     {
-        _httpContext = httpContext;
-        _sp = sp;
+        _httpContextAccessor = httpContextAccessor;
+        _serviceProvider = serviceProvider;
     }
 
-    public void DisplayDocument(string id)
+    public void DisplayDocument(string documentId)
     {
-        var user = _httpContext.HttpContext?.User;
-        if (user == null || !user.IsInRole("Admin")) throw new UnauthorizedAccessException();
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null || (!user.IsInRole("Admin") && !user.IsInRole("HRManager")))
+            throw new UnauthorizedAccessException("Unauthorized.");
 
-        _real ??= _sp.GetRequiredKeyedService<RealDocumentService>("real"); // Lazy loading!
-        _real.DisplayDocument(id);
+        // Lazy resolution from DI on demand:
+        _realService ??= _serviceProvider.GetRequiredKeyedService<RealDocumentService>("real");
+        _realService.DisplayDocument(documentId);
     }
 }
 ```
+
+#### Registration in `Program.cs` (.NET 8/9 Keyed Services):
+```csharp
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddKeyedScoped<RealDocumentService>("real");
+builder.Services.AddScoped<IDocumentService, DocumentServiceProxy>();
+```
+
+---
+
+### Deep Dive Q&A: Decorator vs. Proxy: Why they look similar & their 4 fundamental architectural differences
+
+> **Question:** Decorator design pattern and proxy design pattern look very similar.
+
+**Answer:**
+In C# code, both patterns often look almost **identical** structurally:
+- Both implement the exact same interface as the target class.
+- Both wrap an instance of that interface via composition.
+- Both forward calls to the wrapped instance with logic before or after.
+
+```csharp
+// Structurally, both look like this:
+public class Wrapper : IService
+{
+    private readonly IService _inner;
+    public Wrapper(IService inner) => _inner = inner;
+
+    public void DoWork()
+    {
+        // Do something before
+        _inner.DoWork();
+        // Do something after
+    }
+}
+```
+
+> **"Design patterns are distinguished by their INTENT, not their syntax."**
+
+Here are the **4 fundamental architectural differences**:
+
+#### 1. Intent: Enhancement vs. Access Control
+- **Decorator:** Enhances an object by adding new features/behaviors dynamically (e.g., Starbucks coffee toppings: milk, caramel, whipped cream).
+- **Proxy:** Controls, protects, delays, or coordinates access to an object (e.g., Nightclub bouncer / CEO executive assistant).
+
+#### 2. Who Controls the Object's Lifecycle?
+- **Decorator:** The caller creates the real object and passes it in (`new LoggingWeatherService(realService)`). The decorator doesn't care how the target was created.
+- **Proxy:** The proxy often creates, delays, or manages the lifecycle internally (`_realService ??= new RealDocumentService()`). The client often does not even know the real object exists.
+
+#### 3. Chaining: Nesting Dolls vs. Single Gatekeeper
+- **Decorator:** Designed to be stacked recursively (`new RetryDecorator(new LoggingDecorator(new CachingDecorator(service))))`.
+- **Proxy:** Typically a 1-to-1 surrogate. You don't stack 5 proxies in front of 1 object.
+
+#### 4. Ability to Block Execution (Short-Circuiting)
+- **Decorator:** Almost always delegates to the inner object to decorate its results.
+- **Proxy:** Frequently aborts and never calls the real object (e.g., Protection Proxy throws `UnauthorizedException` without touching the real service; Remote Proxy makes an RPC network call instead of local execution).
+
+#### Summary Comparison Matrix
+
+| Criteria | Decorator | Proxy |
+| :--- | :--- | :--- |
+| **What is its job?** | **Enhance** functionality. | **Control access** / represent the object. |
+| **Object Creation** | Created by caller and passed in. | Often created, delayed, or managed by the Proxy itself. |
+| **Relationship** | Can be chained recursively ($N$ wrappers). | Usually 1-to-1 surrogate. |
+| **Can it prevent execution?** | Rarely (usually executes both wrapper + inner). | Frequently (blocks unauthorized access, returns cached stubs). |
+| **Everyday .NET Example** | `CryptoStream`, `GZipStream`, `Scrutor`. | EF Core Lazy Loading Proxies, Moq/NSubstitute mocks, gRPC client stubs. |
+
+> **The Golden Rule to Remember:**  
+> - If you wrap a class to **add flavors, features, or cross-cutting concerns** (and you could stack 3 of them) $\rightarrow$ **Decorator**.  
+> - If you wrap a class to **act as a gatekeeper, security guard, lazy-loader, or network boundary** $\rightarrow$ **Proxy**.
 
 ---
 
 ## Pattern 5: Composite (Structural)
 
-### 1. Problem / Pain Point
-E-commerce carts have individual products and nested product bundles (bundles containing bundles). Without composite, callers write nested loops and recursive type checks (`if item is Bundle`).
+### 1. What is the Problem? (The Real-World Pain)
+In an e-commerce store, a cart contains individual products (Mouse $25, Keyboard $75) and nested bundles (Gamer Pack = Mouse + Keyboard; Ultimate Office = Monitor + Gamer Pack). Without Composite, callers write messy recursive loops and type checks (`if (item is Bundle)`).
 
-### 2. Core Concept
-Treat individual products (`Product` - Leaf) and bundles (`ProductBundle` - Composite) uniformly via a shared interface (`ICatalogItem`). Calling `GetPrice()` on the root bundle recursively sums all children.
+### 2. The Core Concept (Plain English)
+> **"Compose objects into tree structures to represent part-whole hierarchies. Composite lets clients treat individual objects and compositions of objects uniformly."**
 
+**Analogy: Shipping Boxes & Packing Slips**  
+When a scale weighs an Amazon box, it doesn't care whether items are loose or packed inside 3 smaller nested boxes. It just asks the root package: *"What is your total weight?"*
+
+```
+                 [ Ultimate Desk Setup (Bundle) ]  <-- Composite
+                   ├── Monitor ($300)              <-- Leaf
+                   └── [ Gamer Pack (Bundle) ]     <-- Composite
+                         ├── Keyboard ($50)        <-- Leaf
+                         └── Mouse ($25)           <-- Leaf
+```
+
+### 3. Implementation in Modern C#
 ```csharp
-public class ProductBundle : ICatalogItem
+public interface ICatalogItem
 {
-    private readonly List<ICatalogItem> _items = new();
-    public decimal GetPrice() => _items.Sum(i => i.GetPrice()) * (1 - _discountPercentage / 100m);
+    string Name { get; }
+    decimal GetPrice();
+    void Display(int indent = 0);
 }
+
+public class Product : ICatalogItem // Leaf
+{
+    public string Name { get; }
+    private readonly decimal _price;
+    public Product(string name, decimal price) { Name = name; _price = price; }
+    public decimal GetPrice() => _price;
+    public void Display(int indent = 0) => Console.WriteLine($"{new string(' ', indent * 2)}- {Name} (${_price})");
+}
+
+public class ProductBundle : ICatalogItem // Composite
+{
+    public string Name { get; }
+    private readonly List<ICatalogItem> _items = new();
+    private readonly decimal _discountPercentage;
+
+    public ProductBundle(string name, decimal discount = 0) { Name = name; _discountPercentage = discount; }
+    public void Add(ICatalogItem item) => _items.Add(item);
+
+    public decimal GetPrice()
+    {
+        decimal subTotal = _items.Sum(i => i.GetPrice());
+        return subTotal - (subTotal * (_discountPercentage / 100m));
+    }
+
+    public void Display(int indent = 0)
+    {
+        Console.WriteLine($"{new string(' ', indent * 2)}+ [BUNDLE] {Name} (Discount: {_discountPercentage}%)");
+        _items.ForEach(i => i.Display(indent + 1));
+    }
+}
+```
+
+#### Output:
+```text
++ [BUNDLE] Ultimate Office Setup (Discount: 5%)
+  - 4K Monitor ($400)
+  + [BUNDLE] Gamer Accessories Pack (Discount: 10%)
+    - Gaming Mouse ($25)
+    - Mechanical Keyboard ($75)
+
+Final Calculated Total: $465.50
 ```
 
 ---
 
 ## Pattern 6: Bridge (Structural)
 
-### 1. Problem: Cartesian Explosion
-2 independent dimensions of change: Notification Type (SystemAlert, UserReminder) $\times$ Delivery Channel (Email, SMS, Slack). Pure inheritance creates $N \times M$ Cartesian explosion (6 classes for 2 types $\times$ 3 channels; 20 classes for 4 types $\times$ 5 channels).
+### 1. What is the Problem? (The Real-World Pain: Cartesian Explosion)
+You have 2 independent dimensions of change:
+1. **Notification Types (Abstraction):** *System Alert*, *User Reminder*.
+2. **Delivery Channels (Implementation):** *Email*, *SMS*, *Slack*.
 
-### 2. Core Concept
-Decouple Abstraction (`Notification`) from Implementation (`IMessageSender`) via composition. Math drops from $N \times M$ to $N + M$ (only 9 classes instead of 20!).
+With pure inheritance, 2 types × 3 channels = **6 classes** (`EmailSystemAlert`, `SmsSystemAlert`, etc.).  
+4 types × 5 channels = **20 classes**! Every new delivery channel requires writing a subclass for every notification type.
 
+### 2. The Core Concept (Plain English)
+> **"Decouple an abstraction from its implementation so that the two can vary independently."**
+
+**Analogy: Universal Remote Control & Appliances**  
+A remote control (Abstraction) communicates with TVs, Soundbars, and Projectors (Implementations) via a standard protocol (The Bridge). You don't manufacture a hardwired `SimpleSonyTvRemote`.
+
+```
+ABSTRACTION HIERARCHY                    IMPLEMENTATION HIERARCHY
+(Business Concept)                        (Platform / Channel)
+
+ Notification (Base)                     IMessageSender (Interface)
+   ├── SystemAlert                       ├── EmailSender
+   └── UserReminder                      ├── SmsSender
+          │                              └── SlackSender
+          └─── Has a reference to ───────► (The Bridge)
+```
+
+### 3. Implementation in Modern C#
 ```csharp
+public interface IMessageSender
+{
+    void SendMessage(string title, string body);
+}
+
+public class EmailSender : IMessageSender
+{
+    public void SendMessage(string title, string body) => Console.WriteLine($"[EMAIL] Subject: '{title}' | Body: {body}");
+}
+
+public class SmsSender : IMessageSender
+{
+    public void SendMessage(string title, string body) => Console.WriteLine($"[SMS] Alert: {title} - {body}");
+}
+
 public abstract class Notification
 {
     protected readonly IMessageSender _sender; // The Bridge
     protected Notification(IMessageSender sender) => _sender = sender;
-    public abstract void Notify(string msg);
+    public abstract void Notify(string message);
+}
+
+public class SystemAlertNotification : Notification
+{
+    public SystemAlertNotification(IMessageSender sender) : base(sender) { }
+    public override void Notify(string message) => _sender.SendMessage("CRITICAL ALERT", message.ToUpperInvariant());
+}
+
+public class UserReminderNotification : Notification
+{
+    public UserReminderNotification(IMessageSender sender) : base(sender) { }
+    public override void Notify(string message) => _sender.SendMessage("Friendly Reminder", message);
 }
 ```
+*Math drops from multiplication ($N \times M$) to addition ($N + M$). Adding WhatsApp requires only 1 class instead of 4.*
 
 ---
 
 ## Pattern 7: Flyweight (Structural)
 
-### 1. Problem / Pain Point
-Rendering 1,000,000 trees in a game map. If each tree holds its own 50KB 3D mesh texture: $1,000,000 \times 50\text{ KB} = \mathbf{50\text{ GB RAM}}$ (Crash with OutOfMemory).
+### 1. What is the Problem? (The Real-World Pain)
+Your game map has **1,000,000 trees**. If each tree allocates its own 50KB 3D mesh texture:  
+$$1,000,000 \times 50\text{ KB} \approx \mathbf{50\text{ GB RAM}}$$  
+The application crashes with an `OutOfMemoryException`.
 
-### 2. Core Concept
-Split state into:
-1. **Intrinsic (Shared / Flyweight):** 3D mesh, bark texture, leaf color (held in 1 shared `TreeType` object).
-2. **Extrinsic (Contextual):** `X`, `Y` coordinates passed as parameters into `.Draw(x, y)`.
-* **Memory Saved:** 50 GB drops to **~16 MB**! Used in .NET String Interning (`string.Intern`).
+### 2. The Core Concept: Intrinsic vs. Extrinsic State
+- **Intrinsic State (Shared / Flyweight):** Heavy, constant across all instances (Tree name, 3D mesh, bark texture).
+- **Extrinsic State (Unique / Contextual):** Light, changes per instance (`X`, `Y` coordinates passed into `Draw(x, y)`).
+
+**Analogy: Word Processor Font Glyphs**  
+A 500-page book with 300,000 characters does not allocate 300,000 heavy graphical objects for the letter `'a'`. It creates **one single shared Flyweight** for `'a'`, and the 5,000 occurrences simply supply their coordinates.
+
+### 3. Implementation in Modern C#
+```csharp
+public class TreeType // Flyweight
+{
+    public string Name { get; }
+    public string Color { get; }
+    public byte[] Texture3DData { get; }
+
+    public TreeType(string name, string color, byte[] texture) { Name = name; Color = color; Texture3DData = texture; }
+    public void Draw(int x, int y) => Console.WriteLine($"Drawing '{Name}' tree at ({x}, {y})");
+}
+
+public class TreeFactory
+{
+    private static readonly Dictionary<string, TreeType> _types = new();
+
+    public static TreeType GetTreeType(string name, string color)
+    {
+        string key = $"{name}_{color}";
+        if (!_types.TryGetValue(key, out var type))
+        {
+            type = new TreeType(name, color, new byte[50 * 1024]); // 50KB asset
+            _types[key] = type;
+        }
+        return type;
+    }
+}
+
+public class Tree
+{
+    private readonly int _x; private readonly int _y;
+    private readonly TreeType _type; // Pointer to shared flyweight
+
+    public Tree(int x, int y, TreeType type) { _x = x; _y = y; _type = type; }
+    public void Render() => _type.Draw(_x, _y);
+}
+```
+
+#### Memory Savings:
+| Without Flyweight | With Flyweight |
+| :--- | :--- |
+| 1,000,000 separate 50 KB textures | **2 shared 50 KB textures** = 100 KB |
+| 1,000,000 coordinate pairs | 1,000,000 coordinate pairs = ~16 MB |
+| **Total: ~50 GB RAM (Crash!)** | **Total: ~16.1 MB RAM (Fast!)** |
+
+---
+
+### Deep Dive Q&A: Prototype vs. Flyweight: Why both exist & the 4 fundamental differences
+
+> **Question:** Flyweight and Prototype seem to fix the same problem. Why do we need two?
+
+**Answer:**
+At first glance, both patterns seem similar because **both deal with managing thousands of similar objects efficiently and avoiding heavy instantiation overhead**.
+
+However, they solve completely different architectural problems through opposite mechanics:
+
+> **The 1-Sentence Golden Rule:**  
+> - **Prototype** produces **independent, distinct copies** of an object (`Clone()`) so each can be mutated separately without re-running expensive initialization logic.  
+> - **Flyweight** shares **one single immutable object** across thousands of contexts to prevent out-of-memory (OOM) crashes ($O(1)$ memory).
+
+#### Real-World Analogy
+* **Prototype is a Photocopy:**  
+  You take a master job application form and photocopy it 50 times. Each applicant gets their **own paper**. Applicant A can write their name, strike out lines, or spill coffee on their copy—it has zero impact on Applicant B.
+* **Flyweight is a Highway Billboard:**  
+  10,000 drivers drive down a highway and look at the **exact same billboard**. You do **not** construct 10,000 identical billboards. The billboard itself is immutable (constant), while each driver has their own car speed and GPS coordinates (extrinsic context).
+
+#### The 4 Fundamental Architectural Differences
+
+##### 1. Creational vs. Structural
+* **Prototype (Creational):** Solves **how objects are created**. Instead of calling a slow constructor (e.g., parsing a 50MB configuration file, compiling shaders, or querying a database), you clone an existing pre-warmed instance.
+* **Flyweight (Structural):** Solves **how objects are structured in memory**. Instead of allocating 1,000,000 objects on the heap, you allocate **one** and reference it 1,000,000 times.
+
+##### 2. Number of Objects in RAM
+* **Prototype:** If you request 100,000 units, you get **100,000 distinct objects** allocated on the heap ($O(N)$ memory).
+* **Flyweight:** If you render 100,000 forest trees, you have **1 shared `TreeType` object** in memory and 100,000 tiny coordinate structs $(X, Y)$ ($O(1)$ intrinsic memory).
+
+##### 3. Mutability & Independence
+* **Prototype:** The cloned object is **fully mutable and independent**. Changing a clone's health, color, or weapon has zero effect on the prototype or other clones.
+* **Flyweight:** The flyweight object **MUST BE IMMUTABLE**. Because 100,000 callers share that exact same reference, modifying it would corrupt all callers across the entire application.
+
+##### 4. Intrinsic vs. Extrinsic State
+* **Prototype:** Carries all its own data internally within its private fields.
+* **Flyweight:** Splits state into two parts:
+  * **Intrinsic (Shared):** Texture, 3D Mesh, Audio clips (stored inside the Flyweight).
+  * **Extrinsic (Contextual):** Position `(X, Y, Z)`, current velocity (kept by the caller and passed in as method arguments).
+
+#### Side-by-Side Code Comparison (C#)
+
+##### Prototype: Cloning to create independent, mutable copies
+```csharp
+// Expensive initialization done once
+var baseGoblin = new MonsterPrototype("Goblin", maxHealth: 100, Load3DModelFromDisk("goblin.fbx"));
+
+// Creating 2 distinct goblins via Prototype
+var goblin1 = (MonsterPrototype)baseGoblin.Clone();
+var goblin2 = (MonsterPrototype)baseGoblin.Clone();
+
+// Changing goblin1 DOES NOT affect goblin2
+goblin1.CurrentHealth = 20; // goblin2 still has 100
+```
+
+##### Flyweight: Sharing one instance to save RAM
+```csharp
+// Shared Flyweight: 1 instance in memory (~10 MB 3D model & textures)
+public class TreeType
+{
+    public string Name { get; }
+    public byte[] MeshData { get; }
+
+    public TreeType(string name, byte[] meshData) 
+        => (Name, MeshData) = (name, meshData);
+
+    // Extrinsic state (x, y) is passed in from outside!
+    public void Draw(int x, int y) => RenderEngine.Draw(MeshData, x, y);
+}
+
+// Client holds only lightweight extrinsic data (16 bytes per tree)
+public struct Tree
+{
+    public int X;
+    public int Y;
+    public TreeType SharedType; // Reference to the 1 flyweight
+}
+
+// 1,000,000 trees share ONE TreeType instance
+var oakType = TreeFactory.GetTreeType("Oak", oakMeshBytes);
+var forest = new List<Tree>();
+for (int i = 0; i < 1_000_000; i++)
+{
+    forest.Add(new Tree { X = random.Next(), Y = random.Next(), SharedType = oakType });
+}
+```
+
+#### Summary Comparison Matrix
+
+| Feature | Prototype Pattern | Flyweight Pattern |
+| :--- | :--- | :--- |
+| **GoF Classification** | **Creational** | **Structural** |
+| **Primary Goal** | Fast, flexible creation of new objects without invoking costly constructors. | Drastic RAM reduction when handling millions of fine-grained objects. |
+| **Object Identity** | Unique instances (`ReferenceEquals(a, b) == false`). | Shared instance (`ReferenceEquals(a, b) == true`). |
+| **State Mutability** | Clones can be freely mutated independently. | Flyweights **must be immutable**. |
+| **Heap Memory Impact** | Increases linearly with every new clone ($O(N)$). | Constant memory footprint regardless of count ($O(1)$ for intrinsic data). |
+| **Real-World .NET Examples** | `ICloneable`, `record with { ... }`, WPF / Avalonia template cloning. | `string.Intern()`, Font glyph caches, Roslyn Syntax Trees. |
+
+#### Can they work together?
+**Yes!** In game engines and high-performance systems, they often complement each other:
+You can use **Prototype** to clone an NPC or game unit (so each unit has its own independent AI state, target, and health), while all clones hold a reference to the same **Flyweight** (3D mesh, texture, and animation rigs) to keep memory usage minimal.
 
 ---
 
 # 4. Behavioral Design Patterns
 
-## Overview of the 11 Behavioral Patterns
+## Overview of the 11 Classic GoF Behavioral Patterns
 
-1. **Strategy:** Swappable algorithms behind a common interface.
-2. **Observer:** Publisher broadcasts updates to registered subscribers.
-3. **Command:** Encapsulates actions into objects for queuing, logging, and Undo/Redo.
-4. **Mediator:** Central hub that coordinates many-to-many communication to stop spiderweb coupling.
-5. **Chain of Responsibility:** Pipeline of handlers where each can process, pass, or short-circuit.
-6. **State:** Object changes its behavior when its internal state changes (Finite State Machine).
-7. **Template Method:** Base class defines algorithm skeleton; subclasses override specific steps.
-8. **Iterator:** Sequentially traverse collections (`IEnumerable<T>`, `yield return`).
-9. **Memento:** Capture and restore internal object state snapshots (Checkpoints / Ctrl+Z).
-10. **Visitor:** Add new operations to class hierarchies without modifying their code.
-11. **Interpreter:** Grammatical representation to evaluate domain expressions.
+Behavioral Patterns are about **how objects communicate, collaborate, and distribute responsibilities**.
+
+1. **Strategy:** The Swappable Brain / Algorithm.
+2. **Observer:** The Newsletter Publisher / Event Hub.
+3. **Command:** The Action Ticket / Undo-Redo.
+4. **Mediator:** The Air Traffic Controller.
+5. **Chain of Responsibility:** The Escalation Pipeline / Middleware.
+6. **State:** The Mood Ring / Finite State Machine.
+7. **Template Method:** The Recipe Outline.
+8. **Iterator:** The Tour Guide (`IEnumerable<T>`).
+9. **Memento:** The Save-Game Checkpoint (Ctrl+Z).
+10. **Visitor:** The Tax Auditor / Health Inspector.
+11. **Interpreter:** Custom Language Evaluator.
 
 ---
 
 ## Pattern 1: Strategy (Behavioral)
 
-### 1. Problem / Pain Point
-Monolithic `switch (discountType)` statements violating OCP and making unit testing impossible.
+### 1. What is the Problem? (The Real-World Pain)
+Marketing asks for different discount rules (VIP, Black Friday, First-Time Buyer).
+```csharp
+// ❌ Disaster: Monolithic 60-line switch statement violating OCP
+public decimal CalculateFinalPrice(Order order, DiscountType discountType)
+{
+    decimal finalPrice = order.SubTotal;
+    switch (discountType)
+    {
+        case DiscountType.Vip: finalPrice -= order.SubTotal * 0.20m; break;
+        case DiscountType.BlackFriday: if (order.SubTotal > 100) finalPrice -= 25m; break;
+        // ...
+    }
+    return finalPrice;
+}
+```
 
-### 2. Core Concept
-Extract each algorithm into its own class implementing `IDiscountStrategy` (`NoDiscountStrategy`, `VipDiscountStrategy`, `BlackFridayDiscountStrategy`).
+### 2. The Core Concept (Plain English)
+> **"Define a family of algorithms, put each of them into a separate class, and make their objects interchangeable."**
 
+**Analogy: Navigation on Google Maps**  
+Choose Driving, Walking, Bicycling, or Public Transit. Google Maps doesn't rewrite its whole app for each vehicle; it executes the chosen `IRouteStrategy`.
+
+### 3. Implementation in Modern C#
 ```csharp
 public interface IDiscountStrategy { decimal ApplyDiscount(decimal totalAmount); }
-public class VipDiscountStrategy : IDiscountStrategy { public decimal ApplyDiscount(decimal t) => t * 0.8m; }
+
+public class NoDiscountStrategy : IDiscountStrategy { public decimal ApplyDiscount(decimal t) => t; }
+public class VipDiscountStrategy : IDiscountStrategy { public decimal ApplyDiscount(decimal t) => t * 0.80m; }
+public class BlackFridayDiscountStrategy : IDiscountStrategy
+{
+    public decimal ApplyDiscount(decimal t) => t > 100m ? t - 25m : t;
+}
 
 public class CheckoutService
 {
-    private IDiscountStrategy _strategy;
-    public void SetStrategy(IDiscountStrategy s) => _strategy = s;
-    public decimal Checkout(decimal total) => _strategy.ApplyDiscount(total);
+    private IDiscountStrategy _discountStrategy;
+    public CheckoutService(IDiscountStrategy s) => _discountStrategy = s;
+    public void SetStrategy(IDiscountStrategy s) => _discountStrategy = s;
+    public decimal Checkout(decimal cartTotal) => _discountStrategy.ApplyDiscount(cartTotal);
 }
 ```
-*C# Functional Shortcut: Use delegates (`Func<decimal, decimal>`) as lightweight inline strategies (e.g. LINQ's `.OrderBy(x => x.Age)`).*
+*Functional Shortcut: Use delegates (`Func<decimal, decimal>`) for inline strategies (e.g. LINQ's `.OrderBy(x => x.Age)`).*
 
 ---
 
 ## Pattern 2: Observer (Behavioral)
 
-### 1. Problem / Pain Point
-When Bitcoin price changes, mobile app, trading bot, and dashboard need real-time updates without polling every 100ms.
+### 1. What is the Problem? (The Real-World Pain)
+The price of Bitcoin updates every few seconds. Mobile apps, trading bots, and dashboards all need updates. Polling every 500ms wastes 99% of bandwidth. Hardcoding references inside `StockTicker` violates loose coupling.
 
-### 2. Core Concept
-`StockTicker` (Subject) notifies registered `IStockObserver` instances via `.Attach()`, `.Detach()`, `.Notify()`.
+### 2. The Core Concept (Plain English)
+> **"Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically."**
 
+**Analogy: YouTube Channel & Notification Bell 🔔**  
+You don't drive to YouTube HQ daily. You hit "Subscribe". The creator uploads once, and YouTube pushes notifications to all subscribers.
+
+```
+                  ┌───> [ MobileAppSubscriber ]    (Observer 1)
+[ StockTicker ] ──┼───> [ TradingBotSubscriber ]   (Observer 2)
+  (Publisher)     └───> [ DashboardSubscriber ]    (Observer 3)
+```
+
+### 3. Implementation in Modern C#
 ```csharp
+public interface IStockObserver { void OnPriceChanged(string symbol, decimal newPrice); }
+
 public class StockTicker
 {
+    private readonly string _symbol;
+    private decimal _price;
     private readonly List<IStockObserver> _observers = new();
+
+    public StockTicker(string symbol, decimal price) { _symbol = symbol; _price = price; }
     public void Attach(IStockObserver o) => _observers.Add(o);
     public void Detach(IStockObserver o) => _observers.Remove(o);
-    public void SetPrice(decimal p) { _price = p; Notify(); }
+
+    public void SetPrice(decimal newPrice)
+    {
+        if (_price != newPrice) { _price = newPrice; Notify(); }
+    }
+
     private void Notify() => _observers.ForEach(o => o.OnPriceChanged(_symbol, _price));
+}
+
+public class MobileAppAlert : IStockObserver
+{
+    public void OnPriceChanged(string s, decimal p) => Console.WriteLine($"📱 [Mobile App] {s} is ${p}!");
+}
+
+public class AutoTradingBot : IStockObserver
+{
+    private readonly decimal _threshold;
+    public AutoTradingBot(decimal t) => _threshold = t;
+    public void OnPriceChanged(string s, decimal p)
+    {
+        if (p < _threshold) Console.WriteLine($"🤖 [Bot] BUY ORDER EXECUTED at ${p}!");
+    }
 }
 ```
 
-### The #1 Memory Leak in C# (Lapsed Listener):
-If a singleton publisher holds an event subscription to a transient subscriber (`ticker.PriceChanged += myControl.Update`), the GC can **never collect the subscriber**. Always unsubscribe (`-=`) in `Dispose()`.
+### The #1 Memory Leak in C# (The Lapsed Listener Problem):
+If `StockTicker` is a **Singleton**, and a short-lived transient service subscribes using:
+```csharp
+ticker.PriceChanged += myTransientService.OnPriceChanged;
+```
+The ticker holds a strong reference to `myTransientService`. The Garbage Collector **can never collect it**! Always unsubscribe (`-=`) inside `Dispose()`.
 
 ---
 
 ## Pattern 3: Command (Behavioral)
 
-### 1. Problem / Pain Point
-Calling `bankAccount.Withdraw(100)` directly cannot be queued, scheduled, logged, or undone.
+### 1. What is the Problem? (The Real-World Pain)
+Calling `bankAccount.Withdraw(100)` directly executes and vanishes. You cannot store it in a queue, serialize it to JSON, or support an **Undo (Ctrl+Z)** button.
 
-### 2. Core Concept
-Package the request into `ITransactionCommand` with `Execute()` and `Undo()`. Maintain a `Stack<ITransactionCommand>` in `TransactionManager` to enable full Ctrl+Z undo/rollback capabilities.
+### 2. The Core Concept (Plain English)
+> **"Encapsulate a request as a standalone object, thereby letting you parameterize clients with different requests, queue or log requests, and support undoable operations."**
 
+**Analogy: Restaurant Order Ticket 🧾**  
+You don't shout orders at the chef. The waiter writes an order ticket (The Command). It can sit in a queue, be audited, or be cancelled/torn up before cooking starts.
+
+### 3. Implementation in Modern C# (With Full Undo)
 ```csharp
+public interface ITransactionCommand
+{
+    bool Execute();
+    void Undo();
+}
+
+public class BankAccount
+{
+    public string AccountNumber { get; }
+    public decimal Balance { get; private set; }
+    public BankAccount(string acc, decimal bal) { AccountNumber = acc; Balance = bal; }
+    public void Deposit(decimal amt) => Balance += amt;
+    public bool Withdraw(decimal amt)
+    {
+        if (Balance >= amt) { Balance -= amt; return true; }
+        return false;
+    }
+}
+
 public class DepositCommand : ITransactionCommand
 {
-    private readonly BankAccount _account;
-    private readonly decimal _amount;
-    public bool Execute() { _account.Deposit(_amount); return true; }
-    public void Undo() { _account.Withdraw(_amount); }
+    private readonly BankAccount _acc; private readonly decimal _amt;
+    public DepositCommand(BankAccount acc, decimal amt) { _acc = acc; _amt = amt; }
+    public bool Execute() { _acc.Deposit(_amt); return true; }
+    public void Undo() { _acc.Withdraw(_amt); }
+}
+
+public class WithdrawCommand : ITransactionCommand
+{
+    private readonly BankAccount _acc; private readonly decimal _amt;
+    private bool _ok;
+    public WithdrawCommand(BankAccount acc, decimal amt) { _acc = acc; _amt = amt; }
+    public bool Execute() { _ok = _acc.Withdraw(_amt); return _ok; }
+    public void Undo() { if (_ok) _acc.Deposit(_amt); }
 }
 
 public class TransactionManager
 {
     private readonly Stack<ITransactionCommand> _history = new();
     public void ExecuteTransaction(ITransactionCommand c) { if (c.Execute()) _history.Push(c); }
-    public void UndoLast() { if (_history.Count > 0) _history.Pop().Undo(); }
+    public void UndoLastTransaction() { if (_history.Count > 0) _history.Pop().Undo(); }
 }
 ```
 
@@ -1365,17 +2305,60 @@ public class TransactionManager
 
 ## Pattern 4: Mediator (Behavioral)
 
-### 1. Problem: Spiderweb Coupling Chaos
-10 services talking to each other directly creates a chaotic spiderweb ($N(N-1)/2 = 45$ direct connections).
+### 1. Problem: The "Spiderweb" Coupling Chaos
+When Plane A, Plane B, Plane C, Ground Crew, and Weather Service communicate directly with each other, 10 services create **45 direct connections**. Changing one class breaks 5 others.
 
-### 2. Core Concept
-All components talk **only** to the Mediator (like airplanes talking only to the Air Traffic Control Tower).
+### 2. The Core Concept (Plain English)
+> **"Define an object that encapsulates how a set of objects interact. Mediator promotes loose coupling by keeping objects from referring to each other explicitly."**
+
+**Analogy: The Air Traffic Control (ATC) Tower 🗼**  
+Planes never radio each other. All planes speak **only** to the Control Tower (The Mediator).
+
+```
+[ Plane A ] ───┐               ┌───> [ Plane B ]
+               ▼               │
+       [ CONTROL TOWER ] ──────┤
+          (Mediator)           │
+[ Plane C ] ───┘               └───> [ Ground Crew ]
+```
+
+### 3. Classic GoF Implementation
+```csharp
+public interface IAirTrafficControl
+{
+    void RegisterFlight(Airplane plane);
+    void SendMessage(string message, Airplane sender);
+}
+
+public abstract class Airplane
+{
+    protected readonly IAirTrafficControl _atc;
+    public string CallSign { get; }
+    protected Airplane(IAirTrafficControl atc, string callSign) { _atc = atc; CallSign = callSign; }
+    public abstract void Receive(string message);
+    public void Send(string msg) => _atc.SendMessage(msg, this);
+}
+
+public class AirTrafficControlTower : IAirTrafficControl
+{
+    private readonly List<Airplane> _planes = new();
+    public void RegisterFlight(Airplane p) => _planes.Add(p);
+    public void SendMessage(string msg, Airplane sender) =>
+        _planes.Where(p => p != sender).ToList().ForEach(p => p.Receive(msg));
+}
+```
 
 ---
 
 ### Deep Dive: Air Traffic Control rewritten with Modern MediatR
 
+> **Question:** Could you write the air traffic controller program in modern MediatR pattern?
+
+In MediatR, you don't write a custom tower class. You define **Commands (1-to-1)**, **Notifications (1-to-many)**, and **Pipeline Behaviors**:
+
 ```csharp
+using MediatR;
+
 // 1. 1-to-1 Command
 public record LandingClearance(bool IsApproved, string Runway, string Reason);
 public record RequestLandingCommand(string FlightNumber, string AircraftType) : IRequest<LandingClearance>;
@@ -1383,7 +2366,7 @@ public record RequestLandingCommand(string FlightNumber, string AircraftType) : 
 public class RequestLandingHandler : IRequestHandler<RequestLandingCommand, LandingClearance>
 {
     public Task<LandingClearance> Handle(RequestLandingCommand req, CancellationToken ct) =>
-        Task.FromResult(new LandingClearance(true, "Runway-26L", "Cleared to land."));
+        Task.FromResult(new LandingClearance(true, "Runway-26L (Long)", "Cleared to land."));
 }
 
 // 2. 1-to-Many Notification (Broadcast)
@@ -1393,43 +2376,110 @@ public class EmergencyServicesHandler : INotificationHandler<MaydayAlertNotifica
 {
     public Task Handle(MaydayAlertNotification n, CancellationToken ct)
     {
-        Console.WriteLine($"Dispatched fire trucks for {n.FlightNumber}!");
+        Console.WriteLine($"🚨 [FIRE & RESCUE] Dispatched for {n.FlightNumber}! Emergency: {n.EmergencyType}");
         return Task.CompletedTask;
     }
 }
 
-// 3. Pipeline Behavior (Blackbox Logger)
+public class GroundOperationsHandler : INotificationHandler<MaydayAlertNotification>
+{
+    public Task Handle(MaydayAlertNotification n, CancellationToken ct)
+    {
+        Console.WriteLine($"🛑 [GROUND OPS] Halting taxiing. Clearing runway for {n.FlightNumber}.");
+        return Task.CompletedTask;
+    }
+}
+
+// 3. Pipeline Behavior (Blackbox Flight Recorder)
 public class FlightTelemetryBehavior<TReq, TResp> : IPipelineBehavior<TReq, TResp> where TReq : notnull
 {
     public async Task<TResp> Handle(TReq req, RequestHandlerDelegate<TResp> next, CancellationToken ct)
     {
-        Console.WriteLine($"Intercepted: {typeof(TReq).Name}");
-        return await next();
+        Console.WriteLine($"📡 [RADAR] Intercepted: {typeof(TReq).Name}");
+        var res = await next();
+        Console.WriteLine($"📡 [RADAR] Processed successfully.");
+        return res;
     }
 }
+```
+
+#### Consuming via `IMediator`:
+```csharp
+// 1-to-1 Command:
+var clearance = await mediator.Send(new RequestLandingCommand("Delta-101", "HeavyBoeing777"));
+
+// 1-to-Many Broadcast:
+await mediator.Publish(new MaydayAlertNotification("United-99", "Hydraulic Failure"));
 ```
 
 ---
 
 ## Pattern 5: Chain of Responsibility (Behavioral)
 
-### 1. Problem / Pain Point
-Monolithic nested `if/else` checks for Auth $\rightarrow$ Rate Limiting $\rightarrow$ Validation $\rightarrow$ Execution.
+### 1. What is the Problem? (The Real-World Pain)
+In an Order Processing API, an order must pass Auth $\rightarrow$ Rate Limiting $\rightarrow$ Validation $\rightarrow$ Fraud Check before saving. Writing this in one method violates SRP, is untestable, and makes reordering checks impossible.
 
-### 2. Core Concept
-Link handlers in a chain (`OrderHandler.SetNext()`). Any link can process, pass forward, or **short-circuit** (stop the chain).
-* **Everyday .NET Example:** **ASP.NET Core Middleware Pipeline** (`app.Use(...)`) where unauthorized requests short-circuit before hitting endpoints.
+### 2. The Core Concept (Plain English)
+> **"Pass requests along a chain of handlers. Upon receiving a request, each handler decides either to process the request or to pass it to the next handler in the chain (or short-circuit and stop)."**
 
+**Analogy: Airport Security Checkpoint 🛂**  
+Station 1 (Boarding Pass) $\rightarrow$ Station 2 (Luggage X-Ray) $\rightarrow$ Station 3 (Passport Control). If your visa is denied at Station 3, you are stopped immediately (**short-circuit**).
+
+```
+Request ──> [ AuthHandler ] ──> [ RateLimitHandler ] ──> [ ValidationHandler ] ──> [ Execute Order ]
+                 │                     │                          │
+                 ▼ (If fails)          ▼ (If fails)               ▼ (If fails)
+            (Short-circuit!)      (Short-circuit!)           (Short-circuit!)
+```
+
+### 3. Implementation in Modern C#
 ```csharp
+public class OrderRequest { public string Token { get; set; } = ""; public string UserIp { get; set; } = ""; public decimal Amount { get; set; } }
+
+public abstract class OrderHandler
+{
+    private OrderHandler? _next;
+    public OrderHandler SetNext(OrderHandler next) { _next = next; return next; }
+    public virtual void Handle(OrderRequest req) => _next?.Handle(req);
+}
+
 public class AuthenticationHandler : OrderHandler
 {
-    public override void Handle(OrderRequest request)
+    public override void Handle(OrderRequest req)
     {
-        if (request.Token != "valid-jwt") { Console.WriteLine("Blocked!"); return; } // Short-circuit!
-        base.Handle(request);
+        if (req.Token != "valid-jwt") { Console.WriteLine("🛑 [AuthHandler] Access Denied. (SHORT-CIRCUITED)"); return; }
+        base.Handle(req);
     }
 }
+
+public class RateLimitingHandler : OrderHandler
+{
+    public override void Handle(OrderRequest req)
+    {
+        if (req.UserIp == "192.168.1.50") { Console.WriteLine("🛑 [RateLimitHandler] Rate limited. (SHORT-CIRCUITED)"); return; }
+        base.Handle(req);
+    }
+}
+
+public class ValidationHandler : OrderHandler
+{
+    public override void Handle(OrderRequest req)
+    {
+        if (req.Amount <= 0) { Console.WriteLine("🛑 [ValidationHandler] Invalid amount. (SHORT-CIRCUITED)"); return; }
+        base.Handle(req);
+    }
+}
+
+public class OrderExecutionHandler : OrderHandler
+{
+    public override void Handle(OrderRequest req) => Console.WriteLine($"🎉 Order of ${req.Amount} successfully executed!");
+}
 ```
+*Connecting the chain:*
+```csharp
+auth.SetNext(rateLimit).SetNext(validation).SetNext(execution);
+```
+*In ASP.NET Core, the **Middleware Pipeline (`app.Use(...)`)** is an asynchronous Chain of Responsibility.*
 
 ---
 

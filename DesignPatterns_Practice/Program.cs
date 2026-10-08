@@ -1,4 +1,5 @@
-﻿using DesignPatterns_Practice.Creational;
+﻿using DesignPatterns_Practice.Behavioral;
+using DesignPatterns_Practice.Creational;
 using DesignPatterns_Practice.Structural;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,8 +27,10 @@ namespace DesignPatterns_Practice
             //ProxyExample.Run();
             //CompositeExample.Run();
             //BridgeExample.Run();
-            FlyweightExample.Run();
+            //FlyweightExample.Run();
 
+            //StrategyExample.Run();
+            ObserverExample.Run();
         }
     }
 }

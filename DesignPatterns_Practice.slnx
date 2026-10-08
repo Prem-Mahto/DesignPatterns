@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="designPattern/designPattern.csproj" />
   <Project Path="DesignPatterns_Practice/DesignPatterns_Practice.csproj" />
 </Solution>
